@@ -11,7 +11,9 @@ const SERVICES = [
   { id: 5, platform: "Instagram", name: "Instagram Likes", per1k: 50 },
   { id: 6, platform: "Facebook", name: "Facebook Post Likes", per1k: 50 },
   { id: 7, platform: "YouTube", name: "YouTube Views", per1k: 150 },
-];
+  { id: 8, platform: "Facebook", name: "Facebook Followers", per1k:200},
+  { id: 9, platform: "Facebook", name:"Facebook comments", per1k:200}, 
+  { id: 10,platform: "Facebook", name:"Facebook page like", per1k 100},];
 
 const field = "mt-1 min-h-12 w-full rounded-2xl border-2 border-slate-200 px-3 text-base font-normal text-ink";
 
