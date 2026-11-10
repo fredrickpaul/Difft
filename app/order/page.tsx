@@ -1,4 +1,4 @@
-export type Service = {
+ type Service = {
   id: number;
   platform: string;
   name: string;
@@ -253,7 +253,7 @@ const RAW: Record<string, [string, number][]> = {
 
 let nextId = 1001;
 
-export const SERVICES: Service[] = Object.entries(RAW).flatMap(
+const SERVICES: Service[] = Object.entries(RAW).flatMap(
   ([platform, items]) =>
     items.map(([name, per1k]) => ({
       id: nextId++,
