@@ -1,6 +1,8 @@
 "use client";
+
 import { useMemo, useState } from "react";
 import Link from "next/link";
+
 type Service = {
   id: number;
   platform: string;
@@ -8,244 +10,108 @@ type Service = {
   per1k: number; // price in KES per 1,000
 };
 
-const PREFIX: Record<string, string> = { Twitter: "Twitter/X" };
+const PREFIX: Record<string, string> = { Twitter: "X" };
 
-// platform -> [service name, price in KES per 1,000]
-// To change a price, edit the number. Keep the commas and quotes.
 const RAW: Record<string, [string, number][]> = {
   TikTok: [
-    ["Brazil Followers", 450],
-    ["Brazil Likes", 150],
-    ["Brazil Likes | Cheapest", 100],
-    ["Brazil Profile Followers | Cheapest", 350],
-    ["Comments", 600],
-    ["Comments | Cheapest", 350],
-    ["Comments | Real", 1500],
-    ["Followers", 200],
-    ["Followers | Always Working", 260],
-    ["Followers | Cheap", 150],
-    ["Followers | Cheapest", 100],
-    ["Followers | Fast", 230],
-    ["Followers | HQ", 300],
-    ["Followers | High Quality", 320],
-    ["Followers | No Drop", 280],
-    ["Followers | Real", 350],
-    ["Followers | Refill", 270],
-    ["Followers | Slow", 140],
-    ["Followers | Stable", 250],
-    ["Followers | Ultra Fast", 280],
-    ["Followers | Working", 220],
-    ["Likes", 50],
-    ["Likes | Cheap", 35],
-    ["Likes | Cheapest", 25],
-    ["Likes | Fast", 60],
-    ["Likes | HQ", 80],
-    ["Likes | High Quality", 90],
-    ["Likes | Instant", 65],
-    ["Likes | LQ", 20],
-    ["Likes | Real Accounts", 100],
-    ["Likes | Refill", 70],
-    ["Live Comments", 800],
-    ["Live Likes", 150],
-    ["Live Stream Comments", 800],
-    ["Live Stream Comments | Cheapest", 500],
-    ["Live Stream Followers", 300],
-    ["Live Stream Followers | Cheapest", 200],
-    ["Live Stream Likes", 150],
-    ["Live Stream Shares", 200],
-    ["Live Stream Views", 350],
-    ["Live Stream Views | Always Working", 450],
-    ["Live Stream Views | Fast", 450],
-    ["Live Stream Views | Stable", 400],
-    ["Page Views", 25],
-    ["Pakistan Followers", 350],
-    ["Pakistan Likes", 120],
-    ["Pakistan Video Views", 60],
-    ["Pakistan Views", 60],
-    ["Photo Followers", 220],
-    ["Photo Followers | Always Working", 280],
-    ["Photo Followers | High Quality", 330],
-    ["Post Followers | Cheap", 150],
-    ["Post Followers | HQ", 300],
-    ["Post Followers | High Quality", 320],
-    ["Post Followers | Real", 350],
-    ["Post Followers | Stable", 250],
-    ["Post Followers | Working", 230],
-    ["Post Likes", 50],
-    ["Post Likes | Cheap", 35],
-    ["Post Reposts | Cheapest", 60],
-    ["Profile Comments", 600],
-    ["Profile Followers", 200],
-    ["Profile Followers | Cheap", 150],
-    ["Profile Followers | Cheapest", 100],
-    ["Profile Followers | Fast", 230],
-    ["Profile Followers | HQ", 300],
-    ["Profile Followers | Working", 220],
-    ["Profile Likes", 55],
-    ["Profile Likes | Always Working", 75],
-    ["Profile Likes | Cheapest", 30],
-    ["Profile Likes | Fast", 65],
-    ["Saves", 60],
-    ["Saves | Cheap", 40],
-    ["Saves | Cheapest", 30],
-    ["Services", 100],
-    ["Services | Fast", 120],
-    ["Shares", 80],
-    ["Shares | Cheapest", 50],
-    ["Shares | No Drop", 100],
-    ["Story Likes", 60],
-    ["Targeted Comments", 1200],
-    ["Video Comments", 600],
-    ["Video Comments | Cheapest", 350],
-    ["Video Followers", 200],
-    ["Video Followers | Cheapest", 100],
-    ["Video Likes", 50],
-    ["Video Likes | Cheapest", 25],
-    ["Video Likes | HQ", 80],
-    ["Video Likes | No Drop", 70],
-    ["Video Saves", 60],
-    ["Video Saves | Cheapest", 30],
-    ["Video Saves | Ultra Fast", 90],
-    ["Video Services", 100],
-    ["Video Shares", 80],
-    ["Video Shares | Cheapest", 50],
-    ["Video Views", 30],
-    ["Video Views | Cheap", 20],
-    ["Video Views | Cheapest", 15],
-    ["Video Views | No Drop", 40],
-    ["Video Views | Refill", 40],
-    ["Video Views | Working", 30],
-    ["Views", 30],
-    ["Views | Cheap", 20],
-    ["Views | Cheapest", 15],
-    ["Views | No Drop", 40],
+    ["Brazil Followers", 450], ["Brazil Likes", 150], ["Brazil Likes | Cheapest", 100],
+    ["Brazil Profile Followers | Cheapest", 350], ["Comments", 600],
+    ["Comments | Cheapest", 350], ["Comments | Real", 1500], ["Followers", 200],
+    ["Followers | Always Working", 260], ["Followers | Cheap", 150],
+    ["Followers | Cheapest", 100], ["Followers | Fast", 230], ["Followers | HQ", 300],
+    ["Followers | High Quality", 320], ["Followers | No Drop", 280],
+    ["Followers | Real", 350], ["Followers | Refill", 270], ["Followers | Slow", 140],
+    ["Followers | Stable", 250], ["Followers | Ultra Fast", 280],
+    ["Followers | Working", 220], ["Likes", 50], ["Likes | Cheap", 35],
+    ["Likes | Cheapest", 25], ["Likes | Fast", 60], ["Likes | HQ", 80],
+    ["Likes | High Quality", 90], ["Likes | Instant", 65], ["Likes | LQ", 20],
+    ["Likes | Real Accounts", 100], ["Likes | Refill", 70], ["Live Comments", 800],
+    ["Live Likes", 150], ["Live Stream Comments", 800],
+    ["Live Stream Comments | Cheapest", 500], ["Live Stream Followers", 300],
+    ["Live Stream Followers | Cheapest", 200], ["Live Stream Likes", 150],
+    ["Live Stream Shares", 200], ["Live Stream Views", 350],
+    ["Live Stream Views | Always Working", 450], ["Live Stream Views | Fast", 450],
+    ["Live Stream Views | Stable", 400], ["Page Views", 25],
+    ["Pakistan Followers", 350], ["Pakistan Likes", 120],
+    ["Pakistan Video Views", 60], ["Pakistan Views", 60], ["Photo Followers", 220],
+    ["Photo Followers | Always Working", 280], ["Photo Followers | High Quality", 330],
+    ["Post Followers | Cheap", 150], ["Post Followers | HQ", 300],
+    ["Post Followers | High Quality", 320], ["Post Followers | Real", 350],
+    ["Post Followers | Stable", 250], ["Post Followers | Working", 230],
+    ["Post Likes", 50], ["Post Likes | Cheap", 35], ["Post Reposts | Cheapest", 60],
+    ["Profile Comments", 600], ["Profile Followers", 200],
+    ["Profile Followers | Cheap", 150], ["Profile Followers | Cheapest", 100],
+    ["Profile Followers | Fast", 230], ["Profile Followers | HQ", 300],
+    ["Profile Followers | Working", 220], ["Profile Likes", 55],
+    ["Profile Likes | Always Working", 75], ["Profile Likes | Cheapest", 30],
+    ["Profile Likes | Fast", 65], ["Saves", 60], ["Saves | Cheap", 40],
+    ["Saves | Cheapest", 30], ["Services", 100], ["Services | Fast", 120],
+    ["Shares", 80], ["Shares | Cheapest", 50], ["Shares | No Drop", 100],
+    ["Story Likes", 60], ["Targeted Comments", 1200], ["Video Comments", 600],
+    ["Video Comments | Cheapest", 350], ["Video Followers", 200],
+    ["Video Followers | Cheapest", 100], ["Video Likes", 50],
+    ["Video Likes | Cheapest", 25], ["Video Likes | HQ", 80],
+    ["Video Likes | No Drop", 70], ["Video Saves", 60],
+    ["Video Saves | Cheapest", 30], ["Video Saves | Ultra Fast", 90],
+    ["Video Services", 100], ["Video Shares", 80], ["Video Shares | Cheapest", 50],
+    ["Video Views", 30], ["Video Views | Cheap", 20], ["Video Views | Cheapest", 15],
+    ["Video Views | No Drop", 40], ["Video Views | Refill", 40],
+    ["Video Views | Working", 30], ["Views", 30], ["Views | Cheap", 20],
+    ["Views | Cheapest", 15], ["Views | No Drop", 40],
   ],
   Facebook: [
-    ["Arab Comments", 900],
-    ["Arab Followers", 450],
-    ["Arab Members", 450],
-    ["Arab Page Followers", 450],
-    ["Brazil Page Followers", 500],
-    ["Comments", 600],
-    ["Egypt Comments", 900],
-    ["Egypt Reactions | Cheapest", 120],
-    ["Followers", 200],
-    ["Followers | Cheap", 150],
-    ["Followers | Cheapest", 100],
-    ["Followers | Ultra Fast", 280],
-    ["Followers | Working", 230],
-    ["Group Members", 300],
-    ["Group Members | Stable", 380],
-    ["Group Members | Ultra Fast", 450],
-    ["Group Members | Working", 340],
-    ["Likes", 50],
-    ["Likes | Cheapest", 30],
-    ["Live Stream Views", 350],
-    ["Live Stream Views | Cheapest", 250],
-    ["Live Stream Views | Fast", 450],
-    ["Monetization", 2000],
-    ["Page Followers", 220],
-    ["Page Followers | Cheap", 160],
-    ["Page Followers | Cheapest", 110],
-    ["Page Followers | Fast", 250],
-    ["Page Followers | Ultra Fast", 290],
-    ["Page Followers | Working", 240],
-    ["Page Likes", 200],
-    ["Page Services", 100],
-    ["Pakistan Comments", 700],
-    ["Post Likes", 50],
-    ["Post Likes | Global", 60],
-    ["Post Reactions | Cheapest", 35],
-    ["Post Services", 100],
-    ["Post Services | Working", 120],
-    ["Post Shares", 80],
-    ["Profile Followers", 200],
-    ["Reactions | Cheapest", 35],
-    ["Reactions | Global", 60],
-    ["Reactions | Mixed", 45],
-    ["Reel Plays", 30],
-    ["Reel Plays | Fast", 45],
-    ["Reel Views", 30],
-    ["Reel Views | Cheapest", 20],
-    ["Reel Views | Fast", 45],
-    ["Services", 100],
-    ["Story Reactions", 80],
-    ["Story Reactions | Cheapest", 50],
-    ["Story Views", 25],
-    ["Video Services", 100],
-    ["Video Views", 40],
-    ["Video Views | Cheapest", 25],
-    ["Views", 40],
-    ["Watch Time", 600],
+    ["Arab Comments", 900], ["Arab Followers", 450], ["Arab Members", 450],
+    ["Arab Page Followers", 450], ["Brazil Page Followers", 500], ["Comments", 600],
+    ["Egypt Comments", 900], ["Egypt Reactions | Cheapest", 120], ["Followers", 200],
+    ["Followers | Cheap", 150], ["Followers | Cheapest", 100],
+    ["Followers | Ultra Fast", 280], ["Followers | Working", 230],
+    ["Group Members", 300], ["Group Members | Stable", 380],
+    ["Group Members | Ultra Fast", 450], ["Group Members | Working", 340],
+    ["Likes", 50], ["Likes | Cheapest", 30], ["Live Stream Views", 350],
+    ["Live Stream Views | Cheapest", 250], ["Live Stream Views | Fast", 450],
+    ["Monetization", 2000], ["Page Followers", 220], ["Page Followers | Cheap", 160],
+    ["Page Followers | Cheapest", 110], ["Page Followers | Fast", 250],
+    ["Page Followers | Ultra Fast", 290], ["Page Followers | Working", 240],
+    ["Page Likes", 200], ["Page Services", 100], ["Pakistan Comments", 700],
+    ["Post Likes", 50], ["Post Likes | Global", 60],
+    ["Post Reactions | Cheapest", 35], ["Post Services", 100],
+    ["Post Services | Working", 120], ["Post Shares", 80], ["Profile Followers", 200],
+    ["Reactions | Cheapest", 35], ["Reactions | Global", 60],
+    ["Reactions | Mixed", 45], ["Reel Plays", 30], ["Reel Plays | Fast", 45],
+    ["Reel Views", 30], ["Reel Views | Cheapest", 20], ["Reel Views | Fast", 45],
+    ["Services", 100], ["Story Reactions", 80], ["Story Reactions | Cheapest", 50],
+    ["Story Views", 25], ["Video Services", 100], ["Video Views", 40],
+    ["Video Views | Cheapest", 25], ["Views", 40], ["Watch Time", 600],
     ["Watch Time Views", 400],
   ],
   Twitter: [
-    ["Arab Likes", 350],
-    ["Comments", 900],
-    ["Followers", 500],
-    ["Followers | Always Working", 650],
-    ["Followers | Global", 450],
-    ["Followers | High Quality", 800],
-    ["Followers | No Drop", 700],
-    ["Followers | Working", 600],
-    ["Likes", 150],
-    ["Likes | No Drop", 220],
-    ["Likes | Working", 180],
-    ["Listeners", 200],
-    ["Members", 400],
-    ["Post Views | Auto", 15],
-    ["Profile Followers", 500],
-    ["Profile Shares", 150],
-    ["Profile Views | Cheap", 20],
-    ["Profile Views | Working", 30],
-    ["Services", 100],
-    ["Services | Worldwide", 100],
-    ["Shares", 150],
-    ["Tweet Clicks", 80],
-    ["Tweet Retweets", 250],
-    ["Tweet Retweets | Global", 220],
-    ["Tweet Retweets | No Drop", 350],
-    ["Tweet Retweets | Working", 280],
-    ["Tweet Views", 20],
-    ["Tweet Views | Auto", 15],
-    ["Tweet Views | Working", 25],
-    ["USA Followers | Working", 1200],
-    ["Video Followers", 500],
-    ["Video Views", 25],
-    ["Video Views | Cheap", 15],
-    ["Video Views | Cheapest", 10],
-    ["Video Views | Fast", 35],
-    ["Video Views | Working", 30],
-    ["Views | Cheap", 15],
-    ["Views | Fast", 35],
-    ["Views | Working", 30],
+    ["Arab Likes", 350], ["Comments", 900], ["Followers", 500],
+    ["Followers | Always Working", 650], ["Followers | Global", 450],
+    ["Followers | High Quality", 800], ["Followers | No Drop", 700],
+    ["Followers | Working", 600], ["Likes", 150], ["Likes | No Drop", 220],
+    ["Likes | Working", 180], ["Listeners", 200], ["Members", 400],
+    ["Post Views | Auto", 15], ["Profile Followers", 500], ["Profile Shares", 150],
+    ["Profile Views | Cheap", 20], ["Profile Views | Working", 30],
+    ["Services", 100], ["Services | Worldwide", 100], ["Shares", 150],
+    ["Tweet Clicks", 80], ["Tweet Retweets", 250], ["Tweet Retweets | Global", 220],
+    ["Tweet Retweets | No Drop", 350], ["Tweet Retweets | Working", 280],
+    ["Tweet Views", 20], ["Tweet Views | Auto", 15], ["Tweet Views | Working", 25],
+    ["USA Followers | Working", 1200], ["Video Followers", 500], ["Video Views", 25],
+    ["Video Views | Cheap", 15], ["Video Views | Cheapest", 10],
+    ["Video Views | Fast", 35], ["Video Views | Working", 30],
+    ["Views | Cheap", 15], ["Views | Fast", 35], ["Views | Working", 30],
     ["Votes", 200],
   ],
   Telegram: [
-    ["Arab Members | No Drop", 450],
-    ["Channel Members", 150],
-    ["Comments", 500],
-    ["Comments | Cheapest", 300],
-    ["Followers", 150],
-    ["Group Members", 150],
-    ["Group Members | Cheap", 100],
-    ["Group Members | Premium", 900],
-    ["India Members | No Drop", 350],
-    ["Live Members", 300],
-    ["Members", 150],
-    ["Members | Cheap", 100],
-    ["Members | Cheapest", 70],
-    ["Members | Fast", 170],
-    ["Members | High Quality", 250],
-    ["Members | No Drop", 220],
-    ["Members | Premium", 900],
-    ["Members | Real", 300],
-    ["Members | Refill", 200],
-    ["Poll Votes", 100],
-    ["Post Reactions | Auto", 60],
-    ["Post Services", 100],
-    ["Post Views", 10],
-    ["Post Views | Cheap", 6],
+    ["Arab Members | No Drop", 450], ["Channel Members", 150], ["Comments", 500],
+    ["Comments | Cheapest", 300], ["Followers", 150], ["Group Members", 150],
+    ["Group Members | Cheap", 100], ["Group Members | Premium", 900],
+    ["India Members | No Drop", 350], ["Live Members", 300], ["Members", 150],
+    ["Members | Cheap", 100], ["Members | Cheapest", 70], ["Members | Fast", 170],
+    ["Members | High Quality", 250], ["Members | No Drop", 220],
+    ["Members | Premium", 900], ["Members | Real", 300], ["Members | Refill", 200],
+    ["Poll Votes", 100], ["Post Reactions | Auto", 60], ["Post Services", 100],
+    ["Post Views", 10], ["Post Views | Cheap", 6],
   ],
   Instagram: [
     ["Followers", 200],
@@ -256,15 +122,29 @@ const RAW: Record<string, [string, number][]> = {
 
 let nextId = 1001;
 
-const SERVICES: Service[] = Object.entries(RAW).flatMap(
-  ([platform, items]) =>
-    items.map(([name, per1k]) => ({
-      id: nextId++,
-      platform,
-      name: `${PREFIX[platform] ?? platform} ${name}`,
-      per1k,
-    }))
+const SERVICES: Service[] = Object.entries(RAW).flatMap(([platform, items]) =>
+  items.map(([name, per1k]) => ({
+    id: nextId++,
+    platform,
+    name: `${PREFIX[platform] ?? platform} ${name}`,
+    per1k,
+  }))
 );
+
+const CHIPS = [
+  "Everything",
+  "Instagram",
+  "Facebook",
+  "YouTube",
+  "Twitter",
+  "Spotify",
+  "TikTok",
+  "LinkedIn",
+  "Telegram",
+  "Website",
+  "Other",
+];
+
 export default function OrderPage() {
   const [platform, setPlatform] = useState("Everything");
   const [search, setSearch] = useState("");
@@ -274,9 +154,6 @@ export default function OrderPage() {
   const [link, setLink] = useState("");
   const [msg, setMsg] = useState("");
 
-  const chips = ["Everything", "Instagram", "Facebook", "YouTube", "Twitter",
-    "Spotify", "TikTok", "LinkedIn", "Telegram", "Website", "Other"];
-
   const inPlatform = useMemo(
     () =>
       SERVICES.filter(
@@ -284,24 +161,30 @@ export default function OrderPage() {
       ).filter((s) => s.name.toLowerCase().includes(search.toLowerCase())),
     [platform, search]
   );
+
   const categories = useMemo(
     () => Array.from(new Set(inPlatform.map((s) => s.name.split(" | ")[0]))),
     [inPlatform]
   );
+
   const services = inPlatform.filter(
     (s) => !category || s.name.split(" | ")[0] === category
   );
-  const selected = SERVICES.find((s) => s.id === serviceId) ?? null;
-  const total = selected ? ((selected.per1k * quantity) / 1000).toFixed(2) : "0.00";
 
-  const box = "w-full rounded-xl border border-gray-300 bg-white p-3 text-[#203C43]";
+  const selected = SERVICES.find((s) => s.id === serviceId) ?? null;
+  const total = selected
+    ? ((selected.per1k * quantity) / 1000).toFixed(2)
+    : "0.00";
+
+  const box =
+    "w-full rounded-xl border border-gray-300 bg-white p-3 text-[#203C43]";
 
   return (
     <main className="mx-auto max-w-md space-y-4 bg-gray-50 p-4 pb-24">
       <h1 className="text-2xl font-bold text-[#203C43]">New Order</h1>
 
       <div className="flex flex-wrap gap-2">
-        {chips.map((c) => (
+        {CHIPS.map((c) => (
           <button
             key={c}
             onClick={() => {
@@ -310,7 +193,9 @@ export default function OrderPage() {
               setServiceId(null);
             }}
             className={`rounded-full px-3 py-1 text-sm ${
-              platform === c ? "bg-[#6057E8] text-white" : "bg-white text-[#203C43] border"
+              platform === c
+                ? "bg-[#6057E8] text-white"
+                : "border bg-white text-[#203C43]"
             }`}
           >
             {c}
@@ -335,17 +220,23 @@ export default function OrderPage() {
       >
         <option value="">All categories</option>
         {categories.map((c) => (
-          <option key={c} value={c}>{c}</option>
+          <option key={c} value={c}>
+            {c}
+          </option>
         ))}
       </select>
 
       <select
         className={box}
         value={serviceId ?? ""}
-        onChange={(e) => setServiceId(e.target.value ? Number(e.target.value) : null)}
+        onChange={(e) =>
+          setServiceId(e.target.value ? Number(e.target.value) : null)
+        }
       >
         <option value="">
-          {services.length ? "Select a service" : "No services for this platform yet"}
+          {services.length
+            ? "Select a service"
+            : "No services for this platform yet"}
         </option>
         {services.map((s) => (
           <option key={s.id} value={s.id}>
@@ -360,6 +251,7 @@ export default function OrderPage() {
         value={link}
         onChange={(e) => setLink(e.target.value)}
       />
+
       <input
         className={box}
         type="number"
@@ -396,7 +288,8 @@ export default function OrderPage() {
           Add Funds
         </Link>
       </div>
+
       {msg && <p className="text-sm text-[#203C43]">{msg}</p>}
     </main>
   );
-}
+    }
