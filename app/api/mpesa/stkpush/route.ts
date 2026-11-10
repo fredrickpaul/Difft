@@ -1,11 +1,17 @@
 import { NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
+
+const admin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 const BASE =
   process.env.MPESA_ENV === "live"
     ? "https://api.safaricom.co.ke"
     : "https://sandbox.safaricom.co.ke";
 
-async function getToken() {
+async function getMpesaToken() {
   const auth = Buffer.from(
     `${process.env.MPESA_CONSUMER_KEY}:${process.env.MPESA_CONSUMER_SECRET}`
   ).toString("base64");
@@ -18,6 +24,12 @@ async function getToken() {
 }
 
 export async function POST(req: Request) {
+  const jwt = req.headers.get("authorization")?.replace("Bearer ", "");
+  if (!jwt) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  const { data: auth } = await admin.auth.getUser(jwt);
+  const user = auth?.user;
+  if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+
   const { phone, amount } = await req.json();
 
   let msisdn = String(phone).replace(/\D/g, "");
@@ -25,10 +37,26 @@ export async function POST(req: Request) {
   if (!/^254[17]\d{8}$/.test(msisdn)) {
     return NextResponse.json({ error: "Invalid phone number" }, { status: 400 });
   }
-
   const amt = Math.round(Number(amount));
   if (!amt || amt < 1) {
     return NextResponse.json({ error: "Invalid amount" }, { status: 400 });
+  }
+
+  const { data: dep, error: depErr } = await admin
+    .from("deposits")
+    .insert({
+      user_id: user.id,
+      method: "mpesa",
+      currency: "KES",
+      amount: amt,
+      status: "pending",
+      phone: msisdn,
+    })
+    .select("id")
+    .single();
+  if (depErr || !dep) {
+    console.error(depErr);
+    return NextResponse.json({ error: "Could not start deposit" }, { status: 500 });
   }
 
   const shortcode = process.env.MPESA_SHORTCODE!;
@@ -37,7 +65,7 @@ export async function POST(req: Request) {
     `${shortcode}${process.env.MPESA_PASSKEY}${timestamp}`
   ).toString("base64");
 
-  const token = await getToken();
+  const token = await getMpesaToken();
   const res = await fetch(`${BASE}/mpesa/stkpush/v1/processrequest`, {
     method: "POST",
     headers: {
@@ -58,6 +86,23 @@ export async function POST(req: Request) {
       TransactionDesc: "Wallet top up",
     }),
   });
+  const data = await res.json();
 
-  return NextResponse.json(await res.json());
+  if (data.ResponseCode !== "0") {
+    await admin
+      .from("deposits")
+      .update({ status: "failed", result_desc: data.errorMessage ?? data.ResponseDescription })
+      .eq("id", dep.id);
+    return NextResponse.json({ error: "M-Pesa request failed" }, { status: 502 });
+  }
+
+  await admin
+    .from("deposits")
+    .update({
+      checkout_request_id: data.CheckoutRequestID,
+      merchant_request_id: data.MerchantRequestID,
+    })
+    .eq("id", dep.id);
+
+  return NextResponse.json({ ok: true, depositId: dep.id });
 }
