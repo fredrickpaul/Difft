@@ -59,7 +59,7 @@ export default function AddFundsPage() {
         .select("status")
         .eq("id", out.depositId)
         .single();
-      if (dep?.status === "completed") {
+      if (dep?.status === "success") {
         setBusy(false);
         setMsg("Payment received. Your wallet has been topped up.");
         return;
