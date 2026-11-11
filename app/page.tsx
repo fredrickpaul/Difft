@@ -1,17 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-
-type Service = {
-  id: number;
-  platform: string;
-  name: string;
-  price_per_1000: number;
-  min_qty: number;
-  max_qty: number;
-};
 
 let client: SupabaseClient | null = null;
 function getSupabase() {
@@ -25,208 +16,125 @@ function getSupabase() {
   return client;
 }
 
-const CHIPS = [
-  "Everything", "Instagram", "Facebook", "YouTube", "Twitter",
-  "Spotify", "TikTok", "LinkedIn", "Telegram", "Website", "Other",
+const PLATFORMS = [
+  "TikTok",
+  "Instagram",
+  "Facebook",
+  "YouTube",
+  "Twitter",
+  "Telegram",
 ];
 
-export default function OrderPage() {
-  const [all, setAll] = useState<Service[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [platform, setPlatform] = useState("Everything");
-  const [search, setSearch] = useState("");
-  const [category, setCategory] = useState("");
-  const [serviceId, setServiceId] = useState<number | null>(null);
-  const [quantity, setQuantity] = useState(1000);
-  const [link, setLink] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState("");
+const STEPS = [
+  { n: "1", title: "Add funds", text: "Top up your wallet with M-Pesa." },
+  { n: "2", title: "Pick a service", text: "Choose the platform, service and quantity." },
+  { n: "3", title: "Track your order", text: "Follow every order from your My Orders page." },
+];
+
+export default function Home() {
+  const [loggedIn, setLoggedIn] = useState<boolean | null>(null);
 
   useEffect(() => {
-    fetch("/api/services")
-      .then((r) => r.json())
-      .then((d) => setAll(d.services ?? []))
-      .finally(() => setLoading(false));
+    getSupabase()
+      .auth.getSession()
+      .then(({ data }) => setLoggedIn(!!data?.session));
   }, []);
 
-  const inPlatform = useMemo(
-    () =>
-      all
-        .filter((s) => platform === "Everything" || s.platform === platform)
-        .filter((s) => s.name.toLowerCase().includes(search.toLowerCase())),
-    [all, platform, search]
-  );
-
-  const categories = useMemo(
-    () => Array.from(new Set(inPlatform.map((s) => s.name.split(" | ")[0]))),
-    [inPlatform]
-  );
-
-  const services = inPlatform.filter(
-    (s) => !category || s.name.split(" | ")[0] === category
-  );
-
-  const selected = all.find((s) => s.id === serviceId) ?? null;
-  const total = selected
-    ? ((selected.price_per_1000 * quantity) / 1000).toFixed(2)
-    : "0.00";
-
-  async function submit() {
-    setMsg("");
-    if (!selected) return setMsg("Pick a service first.");
-    if (!link.trim()) return setMsg("Add the link to your profile or post.");
-    if (
-      !Number.isInteger(quantity) ||
-      quantity < selected.min_qty ||
-      quantity > selected.max_qty
-    ) {
-      return setMsg(
-        `Quantity must be between ${selected.min_qty} and ${selected.max_qty}.`
-      );
-    }
-
-    setBusy(true);
-    const { data } = await getSupabase().auth.getSession();
-    const token = data?.session?.access_token;
-    if (!token) {
-      setBusy(false);
-      return setMsg("Please log in first at /login.");
-    }
-
-    const res = await fetch("/api/orders", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ serviceId: selected.id, link: link.trim(), quantity }),
-    });
-    const out = await res.json();
-    setBusy(false);
-
-    if (!res.ok) return setMsg(out.error ?? "Could not place the order.");
-    setMsg(
-      `Order placed. KES ${Number(out.charge).toFixed(2)} was taken from your wallet. Reload the page to see your new balance.`
-    );
-    setLink("");
+  async function logout() {
+    await getSupabase().auth.signOut();
+    setLoggedIn(false);
   }
 
-  const box =
-    "w-full rounded-xl border border-gray-300 bg-white p-3 text-[#203C43]";
-
   return (
-    <main className="mx-auto max-w-md space-y-4 bg-gray-50 p-4 pb-24">
-      <h1 className="text-2xl font-bold text-[#203C43]">New Order</h1>
-
-      <div className="flex flex-wrap gap-2">
-        {CHIPS.map((c) => (
-          <button
-            key={c}
-            onClick={() => {
-              setPlatform(c);
-              setCategory("");
-              setServiceId(null);
-            }}
-            className={`rounded-full px-3 py-1 text-sm ${
-              platform === c
-                ? "bg-[#6057E8] text-white"
-                : "border bg-white text-[#203C43]"
-            }`}
-          >
-            {c}
+    <main className="mx-auto max-w-md bg-gray-50 pb-16">
+      <header className="flex items-center justify-between p-4">
+        <span className="text-2xl font-extrabold text-[#203C43]">Difft</span>
+        {loggedIn ? (
+          <button onClick={logout} className="text-sm text-[#6057E8]">
+            Log out
           </button>
-        ))}
-      </div>
+        ) : (
+          <Link href="/login" className="text-sm font-semibold text-[#6057E8]">
+            Log in
+          </Link>
+        )}
+      </header>
 
-      <input
-        className={box}
-        placeholder="Search services..."
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-      />
+      <section className="space-y-4 rounded-b-3xl bg-[#203C43] p-6 text-white">
+        <h1 className="text-3xl font-bold leading-tight">
+          Buy followers, likes and views.
+        </h1>
+        <p className="text-lg opacity-90">Pay with M-Pesa.</p>
 
-      <select
-        className={box}
-        value={category}
-        onChange={(e) => {
-          setCategory(e.target.value);
-          setServiceId(null);
-        }}
-      >
-        <option value="">All categories</option>
-        {categories.map((c) => (
-          <option key={c} value={c}>
-            {c}
-          </option>
-        ))}
-      </select>
+        <div className="space-y-3 pt-2">
+          <Link
+            href="/order"
+            className="block rounded-xl bg-[#20C765] p-3 text-center font-semibold text-white"
+          >
+            Start ordering
+          </Link>
 
-      <select
-        className={box}
-        value={serviceId ?? ""}
-        onChange={(e) =>
-          setServiceId(e.target.value ? Number(e.target.value) : null)
-        }
-      >
-        <option value="">
-          {loading
-            ? "Loading services..."
-            : services.length
-            ? "Select a service"
-            : "No services for this platform yet"}
-        </option>
-        {services.map((s) => (
-          <option key={s.id} value={s.id}>
-            {s.platform} {s.name} - KES {s.price_per_1000}/1000
-          </option>
-        ))}
-      </select>
-
-      <input
-        className={box}
-        placeholder="Link (profile or post URL)"
-        value={link}
-        onChange={(e) => setLink(e.target.value)}
-      />
-
-      <input
-        className={box}
-        type="number"
-        min={1}
-        placeholder="Quantity"
-        value={quantity}
-        onChange={(e) => setQuantity(Number(e.target.value))}
-      />
-      {selected && (
-        <p className="text-xs text-gray-500">
-          Min {selected.min_qty} / Max {selected.max_qty}
-        </p>
-      )}
-
-      <div className="rounded-xl bg-[#203C43] p-4 text-white">
-        <div className="text-sm opacity-80">
-          Price per 1000: KES {selected ? selected.price_per_1000 : 0}
+          {loggedIn ? (
+            <div className="flex gap-3">
+              <Link
+                href="/orders"
+                className="flex-1 rounded-xl bg-white/10 p-3 text-center font-semibold text-white"
+              >
+                My Orders
+              </Link>
+              <Link
+                href="/add-funds"
+                className="flex-1 rounded-xl bg-[#6057E8] p-3 text-center font-semibold text-white"
+              >
+                Add Funds
+              </Link>
+            </div>
+          ) : (
+            <Link
+              href="/login"
+              className="block rounded-xl bg-[#6057E8] p-3 text-center font-semibold text-white"
+            >
+              Log in or sign up
+            </Link>
+          )}
         </div>
-        <div className="text-xl font-bold">Total: KES {total}</div>
-      </div>
+      </section>
 
-      <div className="flex gap-3">
-        <button
-          onClick={submit}
-          disabled={busy}
-          className="flex-1 rounded-xl bg-[#20C765] p-3 font-semibold text-white disabled:opacity-50"
-        >
-          {busy ? "Placing order..." : "Submit Order"}
-        </button>
-        <Link
-          href="/add-funds"
-          className="flex-1 rounded-xl bg-[#6057E8] p-3 text-center font-semibold text-white"
-        >
-          Add Funds
-        </Link>
-      </div>
+      <section className="space-y-3 p-4 pt-6">
+        <h2 className="text-lg font-bold text-[#203C43]">Platforms</h2>
+        <div className="flex flex-wrap gap-2">
+          {PLATFORMS.map((p) => (
+            <span
+              key={p}
+              className="rounded-full border bg-white px-3 py-1 text-sm text-[#203C43]"
+            >
+              {p}
+            </span>
+          ))}
+        </div>
+      </section>
 
-      {msg && <p className="text-sm text-[#203C43]">{msg}</p>}
+      <section className="space-y-3 p-4">
+        <h2 className="text-lg font-bold text-[#203C43]">How it works</h2>
+        {STEPS.map((s) => (
+          <div
+            key={s.n}
+            className="flex items-start gap-3 rounded-xl border bg-white p-3"
+          >
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#6057E8] font-bold text-white">
+              {s.n}
+            </div>
+            <div>
+              <div className="font-semibold text-[#203C43]">{s.title}</div>
+              <div className="text-sm text-gray-600">{s.text}</div>
+            </div>
+          </div>
+        ))}
+      </section>
+
+      <footer className="p-4 text-center text-xs text-gray-400">
+        Difft &copy; 2026
+      </footer>
     </main>
   );
-    }
+              }
