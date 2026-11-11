@@ -1,165 +1,60 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 type Service = {
   id: number;
   platform: string;
   name: string;
-  per1k: number; // price in KES per 1,000
+  price_per_1000: number;
+  min_qty: number;
+  max_qty: number;
 };
 
-const PREFIX: Record<string, string> = { Twitter: "X" };
-
-const RAW: Record<string, [string, number][]> = {
-  TikTok: [
-    ["Brazil Followers", 450], ["Brazil Likes", 150], ["Brazil Likes | Cheapest", 100],
-    ["Brazil Profile Followers | Cheapest", 350], ["Comments", 600],
-    ["Comments | Cheapest", 350], ["Comments | Real", 1500], ["Followers", 200],
-    ["Followers | Always Working", 260], ["Followers | Cheap", 150],
-    ["Followers | Cheapest", 100], ["Followers | Fast", 230], ["Followers | HQ", 300],
-    ["Followers | High Quality", 320], ["Followers | No Drop", 280],
-    ["Followers | Real", 350], ["Followers | Refill", 270], ["Followers | Slow", 140],
-    ["Followers | Stable", 250], ["Followers | Ultra Fast", 280],
-    ["Followers | Working", 220], ["Likes", 50], ["Likes | Cheap", 35],
-    ["Likes | Cheapest", 25], ["Likes | Fast", 60], ["Likes | HQ", 80],
-    ["Likes | High Quality", 90], ["Likes | Instant", 65], ["Likes | LQ", 20],
-    ["Likes | Real Accounts", 100], ["Likes | Refill", 70], ["Live Comments", 800],
-    ["Live Likes", 150], ["Live Stream Comments", 800],
-    ["Live Stream Comments | Cheapest", 500], ["Live Stream Followers", 300],
-    ["Live Stream Followers | Cheapest", 200], ["Live Stream Likes", 150],
-    ["Live Stream Shares", 200], ["Live Stream Views", 350],
-    ["Live Stream Views | Always Working", 450], ["Live Stream Views | Fast", 450],
-    ["Live Stream Views | Stable", 400], ["Page Views", 25],
-    ["Pakistan Followers", 350], ["Pakistan Likes", 120],
-    ["Pakistan Video Views", 60], ["Pakistan Views", 60], ["Photo Followers", 220],
-    ["Photo Followers | Always Working", 280], ["Photo Followers | High Quality", 330],
-    ["Post Followers | Cheap", 150], ["Post Followers | HQ", 300],
-    ["Post Followers | High Quality", 320], ["Post Followers | Real", 350],
-    ["Post Followers | Stable", 250], ["Post Followers | Working", 230],
-    ["Post Likes", 50], ["Post Likes | Cheap", 35], ["Post Reposts | Cheapest", 60],
-    ["Profile Comments", 600], ["Profile Followers", 200],
-    ["Profile Followers | Cheap", 150], ["Profile Followers | Cheapest", 100],
-    ["Profile Followers | Fast", 230], ["Profile Followers | HQ", 300],
-    ["Profile Followers | Working", 220], ["Profile Likes", 55],
-    ["Profile Likes | Always Working", 75], ["Profile Likes | Cheapest", 30],
-    ["Profile Likes | Fast", 65], ["Saves", 60], ["Saves | Cheap", 40],
-    ["Saves | Cheapest", 30], ["Services", 100], ["Services | Fast", 120],
-    ["Shares", 80], ["Shares | Cheapest", 50], ["Shares | No Drop", 100],
-    ["Story Likes", 60], ["Targeted Comments", 1200], ["Video Comments", 600],
-    ["Video Comments | Cheapest", 350], ["Video Followers", 200],
-    ["Video Followers | Cheapest", 100], ["Video Likes", 50],
-    ["Video Likes | Cheapest", 25], ["Video Likes | HQ", 80],
-    ["Video Likes | No Drop", 70], ["Video Saves", 60],
-    ["Video Saves | Cheapest", 30], ["Video Saves | Ultra Fast", 90],
-    ["Video Services", 100], ["Video Shares", 80], ["Video Shares | Cheapest", 50],
-    ["Video Views", 30], ["Video Views | Cheap", 20], ["Video Views | Cheapest", 15],
-    ["Video Views | No Drop", 40], ["Video Views | Refill", 40],
-    ["Video Views | Working", 30], ["Views", 30], ["Views | Cheap", 20],
-    ["Views | Cheapest", 15], ["Views | No Drop", 40],
-  ],
-  Facebook: [
-    ["Arab Comments", 900], ["Arab Followers", 450], ["Arab Members", 450],
-    ["Arab Page Followers", 450], ["Brazil Page Followers", 500], ["Comments", 600],
-    ["Egypt Comments", 900], ["Egypt Reactions | Cheapest", 120], ["Followers", 200],
-    ["Followers | Cheap", 150], ["Followers | Cheapest", 100],
-    ["Followers | Ultra Fast", 280], ["Followers | Working", 230],
-    ["Group Members", 300], ["Group Members | Stable", 380],
-    ["Group Members | Ultra Fast", 450], ["Group Members | Working", 340],
-    ["Likes", 50], ["Likes | Cheapest", 30], ["Live Stream Views", 350],
-    ["Live Stream Views | Cheapest", 250], ["Live Stream Views | Fast", 450],
-    ["Monetization", 2000], ["Page Followers", 220], ["Page Followers | Cheap", 160],
-    ["Page Followers | Cheapest", 110], ["Page Followers | Fast", 250],
-    ["Page Followers | Ultra Fast", 290], ["Page Followers | Working", 240],
-    ["Page Likes", 200], ["Page Services", 100], ["Pakistan Comments", 700],
-    ["Post Likes", 50], ["Post Likes | Global", 60],
-    ["Post Reactions | Cheapest", 35], ["Post Services", 100],
-    ["Post Services | Working", 120], ["Post Shares", 80], ["Profile Followers", 200],
-    ["Reactions | Cheapest", 35], ["Reactions | Global", 60],
-    ["Reactions | Mixed", 45], ["Reel Plays", 30], ["Reel Plays | Fast", 45],
-    ["Reel Views", 30], ["Reel Views | Cheapest", 20], ["Reel Views | Fast", 45],
-    ["Services", 100], ["Story Reactions", 80], ["Story Reactions | Cheapest", 50],
-    ["Story Views", 25], ["Video Services", 100], ["Video Views", 40],
-    ["Video Views | Cheapest", 25], ["Views", 40], ["Watch Time", 600],
-    ["Watch Time Views", 400],
-  ],
-  Twitter: [
-    ["Arab Likes", 350], ["Comments", 900], ["Followers", 500],
-    ["Followers | Always Working", 650], ["Followers | Global", 450],
-    ["Followers | High Quality", 800], ["Followers | No Drop", 700],
-    ["Followers | Working", 600], ["Likes", 150], ["Likes | No Drop", 220],
-    ["Likes | Working", 180], ["Listeners", 200], ["Members", 400],
-    ["Post Views | Auto", 15], ["Profile Followers", 500], ["Profile Shares", 150],
-    ["Profile Views | Cheap", 20], ["Profile Views | Working", 30],
-    ["Services", 100], ["Services | Worldwide", 100], ["Shares", 150],
-    ["Tweet Clicks", 80], ["Tweet Retweets", 250], ["Tweet Retweets | Global", 220],
-    ["Tweet Retweets | No Drop", 350], ["Tweet Retweets | Working", 280],
-    ["Tweet Views", 20], ["Tweet Views | Auto", 15], ["Tweet Views | Working", 25],
-    ["USA Followers | Working", 1200], ["Video Followers", 500], ["Video Views", 25],
-    ["Video Views | Cheap", 15], ["Video Views | Cheapest", 10],
-    ["Video Views | Fast", 35], ["Video Views | Working", 30],
-    ["Views | Cheap", 15], ["Views | Fast", 35], ["Views | Working", 30],
-    ["Votes", 200],
-  ],
-  Telegram: [
-    ["Arab Members | No Drop", 450], ["Channel Members", 150], ["Comments", 500],
-    ["Comments | Cheapest", 300], ["Followers", 150], ["Group Members", 150],
-    ["Group Members | Cheap", 100], ["Group Members | Premium", 900],
-    ["India Members | No Drop", 350], ["Live Members", 300], ["Members", 150],
-    ["Members | Cheap", 100], ["Members | Cheapest", 70], ["Members | Fast", 170],
-    ["Members | High Quality", 250], ["Members | No Drop", 220],
-    ["Members | Premium", 900], ["Members | Real", 300], ["Members | Refill", 200],
-    ["Poll Votes", 100], ["Post Reactions | Auto", 60], ["Post Services", 100],
-    ["Post Views", 10], ["Post Views | Cheap", 6],
-  ],
-  Instagram: [
-    ["Followers", 200],
-    ["Likes", 50],
-  ],
-  YouTube: [["Views", 150]],
-};
-
-let nextId = 1001;
-
-const SERVICES: Service[] = Object.entries(RAW).flatMap(([platform, items]) =>
-  items.map(([name, per1k]) => ({
-    id: nextId++,
-    platform,
-    name: `${PREFIX[platform] ?? platform} ${name}`,
-    per1k,
-  }))
-);
+let client: SupabaseClient | null = null;
+function getSupabase() {
+  if (!client) {
+    client = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ??
+        process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY)!
+    );
+  }
+  return client;
+}
 
 const CHIPS = [
-  "Everything",
-  "Instagram",
-  "Facebook",
-  "YouTube",
-  "Twitter",
-  "Spotify",
-  "TikTok",
-  "LinkedIn",
-  "Telegram",
-  "Website",
-  "Other",
+  "Everything", "Instagram", "Facebook", "YouTube", "Twitter",
+  "Spotify", "TikTok", "LinkedIn", "Telegram", "Website", "Other",
 ];
 
 export default function OrderPage() {
+  const [all, setAll] = useState<Service[]>([]);
+  const [loading, setLoading] = useState(true);
   const [platform, setPlatform] = useState("Everything");
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("");
   const [serviceId, setServiceId] = useState<number | null>(null);
   const [quantity, setQuantity] = useState(1000);
   const [link, setLink] = useState("");
+  const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
+
+  useEffect(() => {
+    fetch("/api/services")
+      .then((r) => r.json())
+      .then((d) => setAll(d.services ?? []))
+      .finally(() => setLoading(false));
+  }, []);
 
   const inPlatform = useMemo(
     () =>
-      SERVICES.filter(
-        (s) => platform === "Everything" || s.platform === platform
-      ).filter((s) => s.name.toLowerCase().includes(search.toLowerCase())),
-    [platform, search]
+      all
+        .filter((s) => platform === "Everything" || s.platform === platform)
+        .filter((s) => s.name.toLowerCase().includes(search.toLowerCase())),
+    [all, platform, search]
   );
 
   const categories = useMemo(
@@ -171,10 +66,50 @@ export default function OrderPage() {
     (s) => !category || s.name.split(" | ")[0] === category
   );
 
-  const selected = SERVICES.find((s) => s.id === serviceId) ?? null;
+  const selected = all.find((s) => s.id === serviceId) ?? null;
   const total = selected
-    ? ((selected.per1k * quantity) / 1000).toFixed(2)
+    ? ((selected.price_per_1000 * quantity) / 1000).toFixed(2)
     : "0.00";
+
+  async function submit() {
+    setMsg("");
+    if (!selected) return setMsg("Pick a service first.");
+    if (!link.trim()) return setMsg("Add the link to your profile or post.");
+    if (
+      !Number.isInteger(quantity) ||
+      quantity < selected.min_qty ||
+      quantity > selected.max_qty
+    ) {
+      return setMsg(
+        `Quantity must be between ${selected.min_qty} and ${selected.max_qty}.`
+      );
+    }
+
+    setBusy(true);
+    const { data } = await getSupabase().auth.getSession();
+    const token = data?.session?.access_token;
+    if (!token) {
+      setBusy(false);
+      return setMsg("Please log in first at /login.");
+    }
+
+    const res = await fetch("/api/orders", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ serviceId: selected.id, link: link.trim(), quantity }),
+    });
+    const out = await res.json();
+    setBusy(false);
+
+    if (!res.ok) return setMsg(out.error ?? "Could not place the order.");
+    setMsg(
+      `Order placed. KES ${Number(out.charge).toFixed(2)} was taken from your wallet. Reload the page to see your new balance.`
+    );
+    setLink("");
+  }
 
   const box =
     "w-full rounded-xl border border-gray-300 bg-white p-3 text-[#203C43]";
@@ -234,13 +169,15 @@ export default function OrderPage() {
         }
       >
         <option value="">
-          {services.length
+          {loading
+            ? "Loading services..."
+            : services.length
             ? "Select a service"
             : "No services for this platform yet"}
         </option>
         {services.map((s) => (
           <option key={s.id} value={s.id}>
-            {s.name} - KES {s.per1k}/1000
+            {s.platform} {s.name} - KES {s.price_per_1000}/1000
           </option>
         ))}
       </select>
@@ -260,26 +197,26 @@ export default function OrderPage() {
         value={quantity}
         onChange={(e) => setQuantity(Number(e.target.value))}
       />
+      {selected && (
+        <p className="text-xs text-gray-500">
+          Min {selected.min_qty} / Max {selected.max_qty}
+        </p>
+      )}
 
       <div className="rounded-xl bg-[#203C43] p-4 text-white">
         <div className="text-sm opacity-80">
-          Price per 1000: KES {selected ? selected.per1k : 0}
+          Price per 1000: KES {selected ? selected.price_per_1000 : 0}
         </div>
         <div className="text-xl font-bold">Total: KES {total}</div>
       </div>
 
       <div className="flex gap-3">
         <button
-          onClick={() =>
-            setMsg(
-              selected && link && quantity > 0
-                ? "Order submission will be connected in the next step."
-                : "Pick a service, add a link and a quantity."
-            )
-          }
-          className="flex-1 rounded-xl bg-[#20C765] p-3 font-semibold text-white"
+          onClick={submit}
+          disabled={busy}
+          className="flex-1 rounded-xl bg-[#20C765] p-3 font-semibold text-white disabled:opacity-50"
         >
-          Submit Order
+          {busy ? "Placing order..." : "Submit Order"}
         </button>
         <Link
           href="/add-funds"
@@ -292,4 +229,4 @@ export default function OrderPage() {
       {msg && <p className="text-sm text-[#203C43]">{msg}</p>}
     </main>
   );
-    }
+        }
