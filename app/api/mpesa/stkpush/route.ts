@@ -19,8 +19,13 @@ async function getMpesaToken() {
     `${BASE}/oauth/v1/generate?grant_type=client_credentials`,
     { headers: { Authorization: `Basic ${auth}` }, cache: "no-store" }
   );
-  const data = await res.json();
-  return data.access_token as string;
+  const text = await res.text();
+  console.error("TOKEN REPLY", res.status, text);
+  let token: string | null = null;
+  try {
+    token = JSON.parse(text).access_token ?? null;
+  } catch {}
+  return { token, status: res.status, text };
 }
 
 export async function POST(req: Request) {
@@ -66,11 +71,23 @@ export async function POST(req: Request) {
     `${shortcode}${process.env.MPESA_PASSKEY}${timestamp}`
   ).toString("base64");
 
-  const token = await getMpesaToken();
+  const tk = await getMpesaToken();
+  if (!tk.token) {
+    const why = `token step failed (status ${tk.status}) ${tk.text}`.slice(0, 200);
+    await admin
+      .from("deposits")
+      .update({ status: "failed", result_desc: why })
+      .eq("id", dep.id);
+    return NextResponse.json(
+      { error: "M-Pesa request failed: " + why },
+      { status: 502 }
+    );
+  }
+
   const res = await fetch(`${BASE}/mpesa/stkpush/v1/processrequest`, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${token}`,
+      Authorization: `Bearer ${tk.token}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
@@ -87,16 +104,25 @@ export async function POST(req: Request) {
       TransactionDesc: "Wallet top up",
     }),
   });
-  const data = await res.json();
+  const text = await res.text();
+  console.error("STK REPLY", res.status, text);
+  let data: any = {};
+  try {
+    data = JSON.parse(text);
+  } catch {}
 
   if (data.ResponseCode !== "0") {
-    console.error("STK ERROR", JSON.stringify(data));
+    const why = (
+      data.errorMessage ??
+      data.ResponseDescription ??
+      `status ${res.status} ${text}`
+    ).slice(0, 200);
     await admin
       .from("deposits")
-      .update({ status: "failed", result_desc: data.errorMessage ?? data.ResponseDescription })
+      .update({ status: "failed", result_desc: why })
       .eq("id", dep.id);
     return NextResponse.json(
-      { error: "M-Pesa request failed: " + (data.errorMessage ?? data.ResponseDescription ?? JSON.stringify(data)) },
+      { error: "M-Pesa request failed: " + why },
       { status: 502 }
     );
   }
@@ -110,4 +136,5 @@ export async function POST(req: Request) {
     .eq("id", dep.id);
 
   return NextResponse.json({ ok: true, depositId: dep.id });
-    }
+}
+
