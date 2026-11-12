@@ -60,7 +60,7 @@ export async function POST(req: Request) {
   }
 
   const shortcode = process.env.MPESA_SHORTCODE!;
- const till = process.env.MPESA_TILL!;
+  const till = process.env.MPESA_TILL!;
   const timestamp = new Date().toISOString().replace(/\D/g, "").slice(0, 14);
   const password = Buffer.from(
     `${shortcode}${process.env.MPESA_PASSKEY}${timestamp}`
@@ -90,15 +90,15 @@ export async function POST(req: Request) {
   const data = await res.json();
 
   if (data.ResponseCode !== "0") {
-  console.error("STK ERROR", JSON.stringify(data));
-  await admin
-    .from("deposits")
-    .update({ status: "failed", result_desc: data.errorMessage ?? data.ResponseDescription })
-    .eq("id", dep.id);
-  return NextResponse.json(
-    { error: "M-Pesa request failed: " + (data.errorMessage ?? data.ResponseDescription ?? JSON.stringify(data)) },
-    { status: 502 }
-  );
+    console.error("STK ERROR", JSON.stringify(data));
+    await admin
+      .from("deposits")
+      .update({ status: "failed", result_desc: data.errorMessage ?? data.ResponseDescription })
+      .eq("id", dep.id);
+    return NextResponse.json(
+      { error: "M-Pesa request failed: " + (data.errorMessage ?? data.ResponseDescription ?? JSON.stringify(data)) },
+      { status: 502 }
+    );
   }
 
   await admin
@@ -110,4 +110,4 @@ export async function POST(req: Request) {
     .eq("id", dep.id);
 
   return NextResponse.json({ ok: true, depositId: dep.id });
-}
+    }
