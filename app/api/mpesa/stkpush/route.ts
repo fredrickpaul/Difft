@@ -90,6 +90,7 @@ export async function POST(req: Request) {
   const data = await res.json();
 
   if (data.ResponseCode !== "0") {
+  console.error("STK ERROR", JSON.stringify(data));
     await admin
       .from("deposits")
       .update({ status: "failed", result_desc: data.errorMessage ?? data.ResponseDescription })
