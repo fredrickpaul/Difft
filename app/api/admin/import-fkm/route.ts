@@ -76,9 +76,10 @@ export async function GET(req: Request) {
     provider_id: providerId,
     external_id: String(s.service),
     name: String(s.name ?? "").slice(0, 300),
+    category: String(s.category ?? "Other").slice(0, 200),
     rate_usd: Number(s.rate) || 0,
-    min_qty: parseInt(s.min) || 0,
-    max_qty: parseInt(s.max) || 0,
+    min_qty: Math.min(parseInt(s.min) || 0, 2000000000),
+    max_qty: Math.min(parseInt(s.max) || 0, 2000000000),
   }));
 
   for (let i = 0; i < rows.length; i += 500) {
@@ -96,4 +97,4 @@ export async function GET(req: Request) {
     imported: rows.length,
     new: rows.filter((r) => !idByExt.has(r.external_id)).length,
   });
-                              }
+}
