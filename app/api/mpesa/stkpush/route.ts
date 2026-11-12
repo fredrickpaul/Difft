@@ -91,13 +91,15 @@ export async function POST(req: Request) {
 
   if (data.ResponseCode !== "0") {
   console.error("STK ERROR", JSON.stringify(data));
-    await admin
-      .from("deposits")
-      .update({ status: "failed", result_desc: data.errorMessage ?? data.ResponseDescription })
-      .eq("id", dep.id);
-    return NextResponse.json(
-  { error: "M-Pesa request failed: " + (data.errorMessage ?? data.ResponseDescription ?? JSON.stringify(data)) },
-  { status: 502 }
+  await admin
+    .from("deposits")
+    .update({ status: "failed", result_desc: data.errorMessage ?? data.ResponseDescription })
+    .eq("id", dep.id);
+  return NextResponse.json(
+    { error: "M-Pesa request failed: " + (data.errorMessage ?? data.ResponseDescription ?? JSON.stringify(data)) },
+    { status: 502 }
+  );
+  }
 
   await admin
     .from("deposits")
