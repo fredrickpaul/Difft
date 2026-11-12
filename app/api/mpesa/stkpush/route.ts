@@ -95,8 +95,9 @@ export async function POST(req: Request) {
       .from("deposits")
       .update({ status: "failed", result_desc: data.errorMessage ?? data.ResponseDescription })
       .eq("id", dep.id);
-    return NextResponse.json({ error: "M-Pesa request failed" }, { status: 502 });
-  }
+    return NextResponse.json(
+  { error: "M-Pesa request failed: " + (data.errorMessage ?? data.ResponseDescription ?? JSON.stringify(data)) },
+  { status: 502 }
 
   await admin
     .from("deposits")
