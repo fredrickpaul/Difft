@@ -60,6 +60,7 @@ export async function POST(req: Request) {
   }
 
   const shortcode = process.env.MPESA_SHORTCODE!;
+ const till = process.env.MPESA_TILL!;
   const timestamp = new Date().toISOString().replace(/\D/g, "").slice(0, 14);
   const password = Buffer.from(
     `${shortcode}${process.env.MPESA_PASSKEY}${timestamp}`
@@ -76,10 +77,10 @@ export async function POST(req: Request) {
       BusinessShortCode: shortcode,
       Password: password,
       Timestamp: timestamp,
-      TransactionType: "CustomerPayBillOnline",
+      TransactionType: "CustomerBuyGoodsOnline",
       Amount: amt,
       PartyA: msisdn,
-      PartyB: shortcode,
+      PartyB: till,
       PhoneNumber: msisdn,
       CallBackURL: process.env.MPESA_CALLBACK_URL,
       AccountReference: "Difft",
