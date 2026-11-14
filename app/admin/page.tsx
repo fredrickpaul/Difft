@@ -1,5 +1,5 @@
 "use client";
-
+import AdminStats from "@/components/adminstats";
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { RefreshCw, Play, CheckCircle2, XCircle, ExternalLink, ShieldCheck } from "lucide-react";
@@ -137,7 +137,7 @@ export default function AdminPage() {
         </Link>
       </header>
 
-      <main className="mx-auto max-w-3xl px-4 pb-24 pt-5">
+      <main className="mx-auto max-w-3xl px-4 pb-24 pt-5">        <AdminStats />
         <div className="flex items-center justify-between">
           <h1 className="text-4xl font-extrabold tracking-tight">Orders</h1>
           <button
