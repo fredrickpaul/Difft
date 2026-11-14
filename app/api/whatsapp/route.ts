@@ -28,13 +28,18 @@ async function sendText(to: string, body: string) {
 // Meta calls this once to verify the webhook
 export async function GET(req: Request) {
   const u = new URL(req.url);
+  const expected = process.env.WHATSAPP_VERIFY_TOKEN;
+
+  if (!expected) {
+    return new Response("Forbidden: WHATSAPP_VERIFY_TOKEN is not set on this deployment", { status: 403 });
+  }
   if (
     u.searchParams.get("hub.mode") === "subscribe" &&
-    u.searchParams.get("hub.verify_token") === process.env.WHATSAPP_VERIFY_TOKEN
+    u.searchParams.get("hub.verify_token") === expected
   ) {
     return new Response(u.searchParams.get("hub.challenge") ?? "", { status: 200 });
   }
-  return new Response("Forbidden", { status: 403 });
+  return new Response("Forbidden: token or mode does not match", { status: 403 });
 }
 
 // Meta sends every incoming message here
