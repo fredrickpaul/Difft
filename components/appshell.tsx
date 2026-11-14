@@ -1,5 +1,6 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { getSupabase } from "@/lib/sb";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
