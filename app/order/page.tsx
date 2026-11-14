@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import Link from "next/link";
 import {
   Instagram, Facebook, Youtube, Twitter, Linkedin, Send, Globe, Music,
@@ -9,27 +8,17 @@ import {
   ArrowRight, Star, SendHorizontal, Plus,
 } from "lucide-react";
 import AppShell from "@/components/appshell";
+import { getSupabase } from "@/lib/sb";
 
 type Service = {
   id: number;
   platform: string;
+  category?: string;
   name: string;
   price_per_1000: number;
   min_qty: number;
   max_qty: number;
 };
-
-let client: SupabaseClient | null = null;
-function getSupabase() {
-  if (!client) {
-    client = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ??
-        process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY)!
-    );
-  }
-  return client;
-}
 
 const PLATFORMS = [
   { key: "Instagram", sub: "Followers, likes, reels", color: "#e1306c", Icon: Instagram },
@@ -45,6 +34,18 @@ const PLATFORMS = [
 ];
 
 const POPULAR = ["Instagram", "TikTok", "YouTube", "Facebook", "Telegram"];
+
+function samePlatform(sp: string, key: string) {
+  const norm = (v: string) => (v ?? "").toLowerCase().replace(/[^a-z]/g, "");
+  const a = norm(sp);
+  const b = norm(key);
+  if (b === "twitter") return ["twitter", "x", "twitterx"].includes(a);
+  return a === b;
+}
+
+function catOf(s: Service) {
+  return s.category || s.name.split(" | ")[0];
+}
 
 export default function OrderPage() {
   const [all, setAll] = useState<Service[]>([]);
@@ -68,32 +69,33 @@ export default function OrderPage() {
   const inPlatform = useMemo(
     () =>
       all
-        .filter((s) => !platform || s.platform === platform)
+        .filter((s) => !platform || samePlatform(s.platform, platform))
         .filter((s) => s.name.toLowerCase().includes(search.toLowerCase())),
     [all, platform, search]
   );
 
   const categories = useMemo(
-    () => Array.from(new Set(inPlatform.map((s) => s.name.split(" | ")[0]))),
+    () => Array.from(new Set(inPlatform.map((s) => catOf(s)))),
     [inPlatform]
   );
 
-  const services = inPlatform.filter(
-    (s) => !category || s.name.split(" | ")[0] === category
-  );
+  const services = inPlatform.filter((s) => !category || catOf(s) === category);
 
   const selected = all.find((s) => s.id === serviceId) ?? null;
   const total = selected
     ? ((selected.price_per_1000 * quantity) / 1000).toFixed(2)
     : "0.00";
 
-  const popular = POPULAR.map((p) => all.find((s) => s.platform === p)).filter(
-    Boolean
-  ) as Service[];
+  const popular = POPULAR.map((p) =>
+    all.find((s) => samePlatform(s.platform, p))
+  ).filter(Boolean) as Service[];
 
   function goToForm() {
     setTimeout(
-      () => document.getElementById("order-form")?.scrollIntoView({ behavior: "smooth", block: "start" }),
+      () =>
+        document
+          .getElementById("order-form")
+          ?.scrollIntoView({ behavior: "smooth", block: "start" }),
       50
     );
   }
@@ -133,7 +135,7 @@ export default function OrderPage() {
 
     if (!res.ok) return setMsg(out.error ?? "Could not place the order.");
     setMsg(
-      `Order placed. KES ${Number(out.charge).toFixed(2)} was taken from your wallet. Reload the page to see your new balance.`
+      `Order placed. KES ${Number(out.charge).toFixed(2)} was taken from your wallet.`
     );
     setLink("");
   }
@@ -143,10 +145,9 @@ export default function OrderPage() {
   const label = "mb-2 mt-5 block text-lg font-medium";
 
   return (
-    <AppShell balance="KES --">
+    <AppShell>
       <h1 className="mb-5 text-4xl font-extrabold tracking-tight">New Order</h1>
 
-      {/* welcome banner */}
       <section
         className="rounded-[32px] p-6 text-white shadow-xl"
         style={{ background: "linear-gradient(135deg,#3b35c9,#6057e8 55%,#8b5cdc)" }}
@@ -166,7 +167,6 @@ export default function OrderPage() {
         </div>
       </section>
 
-      {/* step 1 */}
       <p className="mt-9 text-base font-bold tracking-[0.2em] text-[#4f46e5]">STEP 1</p>
       <h2 className="mb-4 text-3xl font-extrabold">Choose a platform</h2>
       <div className="grid grid-cols-2 gap-3">
@@ -197,7 +197,6 @@ export default function OrderPage() {
         ))}
       </div>
 
-      {/* step 2 */}
       <p id="order-form" className="mt-9 text-base font-bold tracking-[0.2em] text-[#4f46e5]">STEP 2</p>
       <h2 className="mb-4 text-3xl font-extrabold">New order</h2>
       <section className="rounded-[32px] border border-slate-200 bg-white p-5 shadow-sm">
@@ -238,7 +237,7 @@ export default function OrderPage() {
             </option>
             {services.map((s) => (
               <option key={s.id} value={s.id}>
-                {s.platform} {s.name} - KES {s.price_per_1000}/1000
+                {s.name} - KES {s.price_per_1000}/1000
               </option>
             ))}
           </select>
@@ -296,7 +295,6 @@ export default function OrderPage() {
         {msg && <p className="mt-4 text-base text-slate-700">{msg}</p>}
       </section>
 
-      {/* popular */}
       <div className="mt-9 flex items-end justify-between">
         <div>
           <p className="text-base font-bold tracking-[0.2em] text-[#4f46e5]">POPULAR</p>
@@ -306,7 +304,7 @@ export default function OrderPage() {
       </div>
       <div className="mt-4 space-y-4">
         {popular.map((s, i) => {
-          const p = PLATFORMS.find((x) => x.key === s.platform);
+          const p = PLATFORMS.find((x) => samePlatform(s.platform, x.key));
           const Icon = p?.Icon ?? LayoutGrid;
           return (
             <div key={s.id} className="rounded-[30px] border border-slate-200 bg-white p-5 shadow-sm">
@@ -323,7 +321,7 @@ export default function OrderPage() {
                   </span>
                 )}
               </div>
-              <p className="mt-4 text-sm text-slate-500">{s.platform} · ID {s.id}</p>
+              <p className="mt-4 text-sm text-slate-500">{p?.key ?? s.platform} · ID {s.id}</p>
               <p className="mt-1 text-xl font-bold leading-snug">{s.name}</p>
               <div className="mt-4 flex items-end justify-between">
                 <div>
@@ -332,7 +330,7 @@ export default function OrderPage() {
                 </div>
                 <button
                   onClick={() => {
-                    setPlatform(s.platform);
+                    setPlatform(p?.key ?? "");
                     setCategory("");
                     setServiceId(s.id);
                     goToForm();
@@ -348,4 +346,4 @@ export default function OrderPage() {
       </div>
     </AppShell>
   );
-      }
+}
