@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { getSupabase } from "@/lib/sb";
+import { getSupabase } from "@/lib/sb";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -34,14 +35,40 @@ function Logo({ size = 48 }: { size?: number }) {
 
 export default function AppShell({
   children,
-  balance = "$0.00",
-  signedIn = false,
 }: {
   children: React.ReactNode;
   balance?: string;
   signedIn?: boolean;
 }) {
   const [open, setOpen] = useState(false);
+  const [bal, setBal] = useState<number | null>(null);
+  const [signedIn, setSignedIn] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      const { data } = await getSupabase().auth.getSession();
+      const token = data?.session?.access_token;
+      if (!token) return;
+      setSignedIn(true);
+      const res = await fetch("/api/wallet", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) setBal((await res.json()).balance);
+    })();
+  }, []);
+
+  const balance =
+    bal === null
+      ? "KES --"
+      : `KES ${bal.toLocaleString(undefined, {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        })}`;
+
+  async function logout() {
+    await getSupabase().auth.signOut();
+    window.location.href = "/login";
+  }
   const [cur, setCur] = useState<"USD" | "KES">("USD");
   const path = usePathname();
 
@@ -125,10 +152,17 @@ export default function AppShell({
           })}
         </nav>
 
-        <Link href="/login" onClick={() => setOpen(false)} className="mt-auto flex items-center gap-4 px-3 pt-6 text-lg font-semibold text-[#4f46e5]">
-          <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#4f46e5] text-white"><LogIn size={22} /></span>
-          {signedIn ? "Logout" : "Sign in"}
-        </Link>
+        {signedIn ? (
+  <button onClick={logout} className="mt-auto flex items-center gap-4 px-3 pt-6 text-lg font-semibold text-[#4f46e5]">
+    <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#4f46e5] text-white"><LogIn size={22} /></span>
+    Logout
+  </button>
+) : (
+  <Link href="/login" onClick={() => setOpen(false)} className="mt-auto flex items-center gap-4 px-3 pt-6 text-lg font-semibold text-[#4f46e5]">
+    <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#4f46e5] text-white"><LogIn size={22} /></span>
+    Sign in
+  </Link>
+)}
       </aside>
     </div>
   );
