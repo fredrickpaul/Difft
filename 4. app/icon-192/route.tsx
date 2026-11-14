@@ -1,24 +1,5 @@
-import { ImageResponse } from "next/og";
+import { makeIcon } from "@/lib/icon";
 
 export async function GET() {
-  return new ImageResponse(
-    (
-      <div
-        style={{
-          width: "100%",
-          height: "100%",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          background: "linear-gradient(135deg,#4f46e5,#7c6cf2)",
-          color: "#fff",
-          fontSize: 110,
-          fontWeight: 800,
-        }}
-      >
-        D
-      </div>
-    ),
-    { width: 192, height: 192 }
-  );
+  return makeIcon(192);
 }
