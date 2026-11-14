@@ -4,7 +4,7 @@ import {
   ArrowRight, Instagram, Facebook, Youtube, Twitter, Linkedin, Send, Music, Music2,
 } from "lucide-react";
 import SwRegister from "@/components/swregister";
-
+import InstallButton from "@/components/installbutton";
 export const metadata = {
   title: "DIFFT | Social media growth services in Kenya, pay with M-Pesa",
   description:
@@ -88,6 +88,7 @@ export default function Home() {
           </p>
           <div className="mt-7 flex flex-wrap gap-3">
             <Link href="/login" className="flex items-center gap-2 rounded-full bg-[#16a34a] px-7 py-4 text-lg font-bold">
+             <InstallButton className="flex items-center gap-2 rounded-full bg-white px-7 py-4 text-lg font-bold text-[#3b35c9]" />
               Create free account <ArrowRight size={20} />
             </Link>
             <Link href="/order" className="rounded-full bg-white/20 px-7 py-4 text-lg font-bold">
