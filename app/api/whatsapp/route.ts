@@ -26,6 +26,7 @@ async function sendText(to: string, body: string) {
 }
 
 // Meta calls this once to verify the webhook
+  console.log("WHATSAPP GET hit");
 export async function GET(req: Request) {
   const u = new URL(req.url);
   const expected = process.env.WHATSAPP_VERIFY_TOKEN;
@@ -43,6 +44,7 @@ export async function GET(req: Request) {
 }
 
 // Meta sends every incoming message here
+  console.log("WHATSAPP POST hit");
 export async function POST(req: Request) {
   const raw = await req.text();
 
