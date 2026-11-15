@@ -34,7 +34,20 @@ export default function SupportPage() {
     <AppShell>
       <h1 className="mb-5 text-4xl font-extrabold">Support</h1>
       <div className="space-y-3">
-        {card(MessageCircle, "Live chat", "Chat with our team on WhatsApp", wa("Hi DIFFT, I need help."))}
+      {card(
+  MessageCircle,
+  "Live chat",
+  "Chat with our team on WhatsApp",
+  wa(
+    "Hello DIFFT Support Team,\n\n" +
+    "I would like assistance with my account. Here are my details:\n\n" +
+    "Name: \n" +
+    "Account email: \n" +
+    "Order ID (if any): \n" +
+    "Issue: \n\n" +
+    "Please let me know how we can resolve this. Thank you."
+  )
+)}
         {card(Mail, "Email", "Replies within a day", "mailto:difftsupport@gmail.com")}
         {card(LifeBuoy, "Help centre", "Guides and answers", "#faq")}
       </div>
