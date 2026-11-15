@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { Camera, Save, KeyRound } from "lucide-react";
 import AppShell from "@/components/appshell";
 import { getSupabase } from "@/lib/sb";
-
+import WhatsAppLink from "@/components/whatsapplink";
 export default function ProfilePage() {
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
@@ -89,6 +89,7 @@ export default function ProfilePage() {
           <KeyRound size={22} /> Update password
         </button>
       </section>
+      <WhatsAppLink />
       {msg && <p className="mt-4 text-lg">{msg}</p>}
     </AppShell>
   );
