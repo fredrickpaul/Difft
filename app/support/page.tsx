@@ -35,7 +35,7 @@ export default function SupportPage() {
       <h1 className="mb-5 text-4xl font-extrabold">Support</h1>
       <div className="space-y-3">
         {card(MessageCircle, "Live chat", "Chat with our team on WhatsApp", wa("Hi DIFFT, I need help."))}
-        {card(Mail, "Email", "Replies within a day", "mailto:support@difft.com")}
+        {card(Mail, "Email", "Replies within a day", "mailto:difftsupport@gmail.com")}
         {card(LifeBuoy, "Help centre", "Guides and answers", "#faq")}
       </div>
 
