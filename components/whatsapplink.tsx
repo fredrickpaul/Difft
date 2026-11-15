@@ -5,7 +5,7 @@ import { getSupabase } from "@/lib/sb";
 
 // The WhatsApp number of your bot, digits only with country code
 // (for the Meta test number, copy it from API Setup)
-const BOT_NUMBER = "15550000000";
+const BOT_NUMBER = "+254725257952";
 
 export default function WhatsAppLink() {
   const [linked, setLinked] = useState(false);
