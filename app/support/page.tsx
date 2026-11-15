@@ -4,7 +4,7 @@ import { MessageCircle, Mail, LifeBuoy, SendHorizontal, ChevronDown } from "luci
 import AppShell from "@/components/appshell";
 
 // Replace with your real WhatsApp number (country code, no + or spaces)
-const WHATSAPP = "254700000000";
+const WHATSAPP = "254725257952";
 
 const faqs = [
   ["How long does an order take to start?", "Most orders start within minutes to a few hours. The delivery time is shown on each service."],
