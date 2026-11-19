@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { smmAdd } from "@/lib/smmafrica";
 
-export const maxDuration = 30;
+export const maxDuration = 60;
 
 const admin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -27,7 +28,6 @@ async function refund(userId: string, orderId: string, charge: number) {
       .select("id");
 
     if (upd && upd.length > 0) {
-      // Best effort history row. Ignored if the table rejects it.
       await admin.from("wallet_transactions").insert({
         wallet_id: w.id,
         user_id: userId,
@@ -40,6 +40,61 @@ async function refund(userId: string, orderId: string, charge: number) {
     }
   }
   await admin.from("orders").update({ status: "failed" }).eq("id", orderId);
+}
+
+async function sendToSmmAfrica(o: {
+  userId: string;
+  orderId: string;
+  charge: number;
+  externalId: string;
+  link: string;
+  qty: number;
+}) {
+  let last: { ok: boolean; status: number; data: any } | null = null;
+
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      last = await smmAdd({
+        service: o.externalId,
+        link: o.link,
+        quantity: o.qty,
+        idempotencyKey: `difft-${o.orderId}`,
+      });
+    } catch (e) {
+      console.error("smm.africa request problem", e);
+      last = null;
+      break; // unconfirmed: do not refund
+    }
+    if (last.ok || !last.data?.retryable) break;
+    await new Promise((r) => setTimeout(r, 2000));
+  }
+
+  if (last && last.ok && last.data?.order) {
+    await admin
+      .from("orders")
+      .update({ provider_order_id: String(last.data.order), status: "processing" })
+      .eq("id", o.orderId);
+    return NextResponse.json({ ok: true, orderId: o.orderId, charge: o.charge });
+  }
+
+  // No answer, or the outcome is unconfirmed: the order may exist, so do not refund.
+  if (!last || last.status === 409) {
+    console.error("smm.africa unconfirmed", last?.data);
+    return NextResponse.json({
+      ok: true,
+      orderId: o.orderId,
+      charge: o.charge,
+      note: "Order received and is being processed.",
+    });
+  }
+
+  // Clearly refused: refund the customer.
+  console.error("smm.africa rejected order", JSON.stringify(last.data).slice(0, 300));
+  await refund(o.userId, String(o.orderId), o.charge);
+  return NextResponse.json(
+    { error: "This service is temporarily unavailable. You were not charged." },
+    { status: 502 }
+  );
 }
 
 export async function POST(req: Request) {
@@ -56,7 +111,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Missing service, link or quantity." }, { status: 400 });
   }
 
-  // 1. Make sure the service is linked to FKM BEFORE charging anything.
+  // 1. Make sure the service is linked to a provider BEFORE charging anything.
   const { data: svc } = await admin
     .from("services")
     .select("id, provider_service_id")
@@ -68,12 +123,13 @@ export async function POST(req: Request) {
 
   const { data: ps } = await admin
     .from("provider_services")
-    .select("external_id")
+    .select("external_id, provider")
     .eq("id", svc.provider_service_id)
     .maybeSingle();
   if (!ps?.external_id) {
     return NextResponse.json({ error: "This service is not available." }, { status: 400 });
   }
+  const provider: string = ps.provider ?? "fkm";
 
   // 2. Charge the wallet and create the order.
   const { data: orderId, error } = await admin.rpc("place_order", {
@@ -98,7 +154,22 @@ export async function POST(req: Request) {
     .single();
   const charge = Number(order?.charge ?? 0);
 
-  // 3. Send the order to FKM.
+  // Remember which provider got this order (used by the status sync).
+  await admin.from("orders").update({ provider }).eq("id", orderId);
+
+  // 3a. smm.africa
+  if (provider === "smmafrica") {
+    return sendToSmmAfrica({
+      userId: user.id,
+      orderId: String(orderId),
+      charge,
+      externalId: String(ps.external_id),
+      link: String(link).trim(),
+      qty,
+    });
+  }
+
+  // 3b. FKM (unchanged)
   try {
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), 20000);
@@ -132,7 +203,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: true, orderId, charge });
     }
 
-    // FKM clearly refused the order: refund the customer.
     console.error("FKM rejected order", text.slice(0, 300));
     await refund(user.id, String(orderId), charge);
     return NextResponse.json(
@@ -140,7 +210,6 @@ export async function POST(req: Request) {
       { status: 502 }
     );
   } catch (e) {
-    // Timeout or network problem: FKM may have received it, so do NOT refund.
     console.error("FKM request problem", e);
     return NextResponse.json({
       ok: true,
