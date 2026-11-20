@@ -8,7 +8,10 @@ const admin = createClient(
 
 export async function POST(req: Request) {
   const url = new URL(req.url);
+  console.error("MPESA CALLBACK HIT");
+
   if (url.searchParams.get("secret") !== process.env.MPESA_CALLBACK_SECRET) {
+    console.error("MPESA CALLBACK REFUSED: secret does not match");
     return NextResponse.json({ ResultCode: 1, ResultDesc: "Forbidden" }, { status: 403 });
   }
 
@@ -18,6 +21,7 @@ export async function POST(req: Request) {
 
   const items: any[] = cb.CallbackMetadata?.Item ?? [];
   const receipt = items.find((i) => i.Name === "MpesaReceiptNumber")?.Value ?? null;
+  console.error("MPESA CALLBACK", cb.CheckoutRequestID, cb.ResultCode, receipt);
 
   const { error } = await admin.rpc("complete_deposit", {
     p_checkout_id: cb.CheckoutRequestID,
